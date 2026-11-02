@@ -1,6 +1,7 @@
-import { env } from "cloudflare:workers";
+import { db } from "../db/pg";
 import { projectDelay } from "./projection.mjs";
 import { classifyFallback } from "./note-fallback.mjs";
+export { db };
 
 export type Actor = {
   email: string;
@@ -26,11 +27,6 @@ export const categories = [
   "Other",
   "Needs review",
 ];
-
-export function db(): D1Database {
-  if (!env.DB) throw new Error("DB binding unavailable");
-  return env.DB;
-}
 
 export function todayIST() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -380,12 +376,12 @@ export async function getState(user: Actor) {
 export async function classifyNote(note: string) {
   if (!note.trim())
     return { category: null, englishSummary: null, confidence: null };
-  if (!env.OPENAI_API_KEY) return classifyFallback(note);
+  if (!process.env.OPENAI_API_KEY) return classifyFallback(note);
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

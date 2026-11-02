@@ -1,4 +1,3 @@
-import { env } from "cloudflare:workers";
 import {
   actor,
   categories,
@@ -156,15 +155,10 @@ export async function POST(request: Request) {
         const match = body.photoData.match(
           /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/,
         );
-        if (match && match[2].length <= 2800000 && env.BUCKET) {
-          const bytes = Uint8Array.from(atob(match[2]), (c) => c.charCodeAt(0));
-          const key = `updates/${id}.${match[1] === "jpeg" ? "jpg" : match[1]}`;
-          await env.BUCKET.put(key, bytes, {
-            httpMetadata: { contentType: `image/${match[1]}` },
-          });
+        if (match && match[2].length <= 2800000) {
           await db()
-            .prepare("UPDATE updates SET photo_key=? WHERE id=?")
-            .bind(key, id)
+            .prepare("UPDATE updates SET photo_key=?,photo_data=? WHERE id=?")
+            .bind(id, body.photoData, id)
             .run();
         }
       }
