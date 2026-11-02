@@ -84,3 +84,29 @@ test("order setup creates milestones and date edits remain auditable", { skip: !
   const cState = await (await fetch(`${base}/api/state`, { headers: { cookie: buyerC } })).json();
   assert.ok(!cState.orders.some(o => o.id === id));
 });
+
+test("offline retry is idempotent and photos remain buyer scoped", { skip: !base }, async () => {
+  const floorCookie = await signIn("floor@loomline.demo");
+  const buyerBCookie = await signIn("buyer-b@loomline.demo");
+  const buyerCCookie = await signIn("buyer-c@loomline.demo");
+  const before = await (await fetch(`${base}/api/state`, { headers: { cookie: floorCookie } })).json();
+  const order = before.orders.find(o => o.po === "B-PO-88240");
+  const id = crypto.randomUUID();
+  const payload = {
+    action: "dailyUpdate", id, orderId: order.id, dailyQty: 1,
+    updateDate: before.today, note: "",
+    photoData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+  };
+  const send = () => fetch(`${base}/api/action`, {
+    method: "POST", headers: { cookie: floorCookie, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  assert.equal((await send()).status, 200);
+  const duplicate = await send();
+  assert.equal(duplicate.status, 200);
+  assert.equal((await duplicate.json()).duplicate, true);
+  const after = await (await fetch(`${base}/api/state`, { headers: { cookie: floorCookie } })).json();
+  assert.equal(after.orders.find(o => o.id === order.id).stage_done, order.stage_done + 1);
+  assert.equal((await fetch(`${base}/api/photo/${id}`, { headers: { cookie: buyerBCookie } })).status, 200);
+  assert.equal((await fetch(`${base}/api/photo/${id}`, { headers: { cookie: buyerCCookie } })).status, 404);
+});

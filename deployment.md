@@ -1,12 +1,12 @@
 # Deployment guide
 
 Project: https://github.com/aggarwaltanmay/loomline-order-control  
-Live app: https://loomline-order-control.tanmay-aggarwall.chatgpt.site
+Live app: https://loomline-order-control.vercel.app
 
 ## Local run
 
 1. Install Node.js 22.13+ and Git.
-2. Clone the repository and enter it:
+2. Clone the public repository and enter it:
 
    ```sh
    git clone https://github.com/aggarwaltanmay/loomline-order-control.git
@@ -14,22 +14,20 @@ Live app: https://loomline-order-control.tanmay-aggarwall.chatgpt.site
    ```
 
 3. Install locked dependencies: `npm ci`.
-4. Optionally create an ignored `.dev.vars` file with `OPENAI_API_KEY` for AI classification. Without it, the Tamil/English rule suggestion remains functional. Do not commit the file.
-5. Build once to generate the local Worker configuration: `npm run build`.
-6. Apply the committed D1 migration to the local database:
-
-   ```sh
-   node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js d1 execute DB --local --config dist/server/wrangler.json --persist-to .wrangler/state --file drizzle/0000_elite_raider.sql
-   ```
-
-7. Start the app: `npm run dev`. Open the printed local URL, usually `http://127.0.0.1:5173/`. The first successful demo sign-in seeds the three orders and role accounts.
-8. Run checks: `node --test tests/*.test.mjs` and `npx tsc --noEmit`. For API access tests, run `TEST_BASE_URL=http://127.0.0.1:5173 node --test tests/*.test.mjs` while the local server is up. Integration tests add a sample order, so use a disposable local database.
+4. Create an ignored `.env.local` file with `DATABASE_URL=memory:` for a disposable local database. To use persistent data, replace that setting with a PostgreSQL connection string for a database you control. Optionally add `OPENAI_API_KEY` for live note classification. Never commit this file.
+5. Run `npm run dev` and open `http://localhost:3000`. The first demo sign-in creates tables and seeds the three sample POs and role accounts.
+6. Run `npm test` and `npm run build`. To include API integration tests, keep the local server running and run `TEST_BASE_URL=http://localhost:3000 npm test`. Integration tests create a sample order, so use a disposable database.
 
 ## Hosted deployment
 
-The live app is a Git-backed Sites deployment. `.openai/hosting.json` binds D1 as `DB` and R2 as `BUCKET`; deployment applies the committed Drizzle migration, builds the Vinext Worker and publishes the saved version. Set `OPENAI_API_KEY` as a secret runtime environment variable in Sites. The key must belong to a funded OpenAI API project for live AI classification; a rule-based suggestion handles API failure. Site identity and source synchronization are managed by Sites. A new owner should create their own Sites project and update the opaque `project_id` in the hosting manifest through the Sites workflow.
+The public GitHub `main` branch is imported as a Next.js project on Vercel. Set `DATABASE_URL` in Vercel to the project's PostgreSQL connection string (a Neon integration works), then redeploy. The app creates its tables and seeds invented reviewer data on first sign-in. Set `OPENAI_API_KEY` as an optional server-side secret for OpenAI Responses API categorization. Never put either value in Git or in a public `NEXT_PUBLIC_` variable.
 
-Required environment variable names: `OPENAI_API_KEY` for live AI classification. No key is required for the rule-based fallback.
+Environment variable names:
+
+- `DATABASE_URL` — required for durable production data.
+- `OPENAI_API_KEY` — optional for live AI; a labelled Tamil/English rule suggestion handles missing credentials, API failure or uncertain notes.
+
+The OpenAI project used during development had no credits on 2 November 2026, so live model output needs retesting after funding. The fallback, original-note display and merchandiser correction remain usable.
 
 ## Reviewer demo logins
 
@@ -46,4 +44,4 @@ The buyer link is the app URL with `?view=buyer`. The server scopes data to the 
 
 ## Operational limits
 
-This is a demo auth system with shared credentials. Replace it with individual accounts before real buyer use. Offline updates replay when the app is open and connectivity returns; closed-browser background sync is not implemented. Browser voice recognition availability varies, and text entry is always available. The status export is an Excel-compatible CSV. The site uses sample order values and baseline rates; live floor entries replace the latter per stage.
+This is a reviewer demo with shared credentials. Replace them with individual accounts before real buyer use. Offline updates replay when the app is open and connectivity returns; closed-browser background sync is not implemented. Browser voice recognition availability varies, and text entry is always available. Status export is an Excel-compatible CSV. Sample baseline rates are replaced by live floor entries per stage. Photos are stored in PostgreSQL as data URLs for this limited demo; move them to object storage before a real rollout.

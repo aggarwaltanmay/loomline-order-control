@@ -135,6 +135,14 @@ export async function POST(request: Request) {
         return error("Date must be within the last 30 days.");
       if (qty === 0 && !note && !body.photoData)
         return error("Enter pieces, an issue or a photo.");
+      const existing = await db()
+        .prepare("SELECT order_id FROM updates WHERE id=?")
+        .bind(id)
+        .first<{ order_id: string }>();
+      if (existing)
+        return existing.order_id === order.id
+          ? Response.json({ ok: true, duplicate: true })
+          : error("Update ID already belongs to another order.", 409);
       if (qty + Number(order.stage_done) > Number(order.qty))
         return error("Quantity exceeds the order total.");
       const inserted = await db()
@@ -169,7 +177,7 @@ export async function POST(request: Request) {
         .bind(user.email, todayIST())
         .first<{ n: number }>();
       const suggestion =
-        (used?.n ?? 0) > 20 ? classifyFallback(note) : await classifyNote(note);
+        (used?.n ?? 0) >= 20 ? classifyFallback(note) : await classifyNote(note);
       await db()
         .prepare(
           "UPDATE updates SET category=?,english_summary=?,confidence=? WHERE id=?",

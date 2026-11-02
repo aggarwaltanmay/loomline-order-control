@@ -2,7 +2,7 @@
 
 A working sample of a knitwear export control room for Company A, Tiruppur.
 
-- [Live app](https://loomline-order-control.tanmay-aggarwall.chatgpt.site)
+- [Live app](https://loomline-order-control.vercel.app)
 - [Technical design](docs/TDD.pdf) (also supplied in the submission ZIP)
 - [Deployment guide](deployment.md)
 
@@ -16,18 +16,18 @@ A working sample of a knitwear export control room for Company A, Tiruppur.
 
 ## Stack
 
-Vinext / React UI and API routes on Cloudflare Workers; D1 for structured records; R2 for photos; IndexedDB for offline pending updates; OpenAI Responses API for note categorization. See [deployment.md](deployment.md) for local setup and demo sign-ins.
+Next.js UI and API routes on Vercel; PostgreSQL for orders, role accounts, date history and demo photos; IndexedDB for pending floor updates; OpenAI Responses API for note categorization. See [deployment.md](deployment.md) for local setup and demo sign-ins.
 
 ## Tests
 
 ```sh
-node --test tests/*.test.mjs
-TEST_BASE_URL=http://127.0.0.1:5173 node --test tests/*.test.mjs
-npx tsc --noEmit
+npm test
+TEST_BASE_URL=http://127.0.0.1:3000 npm test
+npm run build
 ```
 
-The integration tests create a new sample order in the local database. Run them against a disposable local preview.
+The integration tests create a new sample order in the local database. Run them against a disposable local instance.
 
 ## Scope
 
-This is a reviewer demo with sample data and shared demo passwords. It is not a production identity system. Before rollout, replace demo accounts with individual identities, add account provisioning and operational controls, and validate the pilot with two seasons of data.
+This is a reviewer demo with sample data and shared demo passwords. Before rollout, replace demo accounts with individual identities, add account provisioning and operational controls, and validate the pilot with two seasons of data.
