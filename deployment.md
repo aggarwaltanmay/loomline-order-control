@@ -27,7 +27,7 @@ Environment variable names:
 - `DATABASE_URL` — required for durable production data.
 - `OPENAI_API_KEY` — optional for live AI; a labelled Tamil/English rule suggestion handles missing credentials, API failure or uncertain notes.
 
-The OpenAI project used during development had no credits on 2 November 2026, so live model output needs retesting after funding. The fallback, original-note display and merchandiser correction remain usable.
+The OpenAI project used during development still had no credits on 5 November 2026, so live model output needs retesting after funding. The fallback, original-note display and merchandiser correction remain usable.
 
 ## Reviewer demo logins
 
