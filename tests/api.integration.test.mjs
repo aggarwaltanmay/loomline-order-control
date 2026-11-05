@@ -63,7 +63,7 @@ test("order setup creates milestones and date edits remain auditable", { skip: !
     headers: { cookie, "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "createOrder", po, buyerId: "B", buyerName: "Company B · UK",
-      style: "Test crew tee", color: "Blue", unitId: "Unit 1",
+      style: "=1+1", color: "Blue", unitId: "Unit 1",
       exFactory: "2026-12-10", sizes: { S: 100, M: 200 },
     }),
   });
@@ -73,6 +73,8 @@ test("order setup creates milestones and date edits remain auditable", { skip: !
   const order = state.orders.find(o => o.id === id);
   assert.equal(order.qty, 300);
   assert.equal(order.milestones.length, 7);
+  const csv = await (await fetch(`${base}/api/export`, { headers: { cookie } })).text();
+  assert.ok(csv.includes(`"'=1+1"`), "Excel formula cells must be escaped");
   const changed = await fetch(`${base}/api/action`, {
     method: "POST", headers: { cookie, "Content-Type": "application/json" },
     body: JSON.stringify({ action: "changeDate", orderId: id, field: "Cutting", newDate: "2026-11-25", reason: "Buyer approved revised cutting plan" }),

@@ -22,10 +22,9 @@ const str = (x: unknown) => String(x ?? "").trim();
 export async function POST(request: Request) {
   const user = await actor(request);
   if (!user) return error("Sign in to continue.", 401);
-  const body = (await request.json().catch(() => null)) as Record<
-    string,
-    any
-  > | null;
+  // Each action validates its fields before using the untrusted JSON body.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const body = (await request.json().catch(() => null)) as Record<string, any> | null;
   if (!body || typeof body.action !== "string")
     return error("Invalid request.");
   const now = new Date().toISOString();

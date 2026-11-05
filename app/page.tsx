@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- Authenticated floor photos and local previews should bypass image optimization. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -8,7 +9,6 @@ import {
   Bell,
   Camera,
   Check,
-  ChevronDown,
   CircleAlert,
   Clock3,
   FilePlus2,
@@ -97,6 +97,19 @@ type Pending = {
   photoData: string | null;
   action: "dailyUpdate";
 };
+type SpeechResult = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type SpeechEngine = {
+  lang: string;
+  interimResults: boolean;
+  onresult: ((event: SpeechResult) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+};
+type SpeechWindow = Window & {
+  SpeechRecognition?: new () => SpeechEngine;
+  webkitSpeechRecognition?: new () => SpeechEngine;
+};
 
 const fmt = (n: number) => new Intl.NumberFormat("en-IN").format(n);
 const dateLabel = (d: string) => {
@@ -174,9 +187,9 @@ const T = {
   },
 };
 
-async function api(path: string, options?: RequestInit): Promise<any> {
+async function api<T = unknown>(path: string, options?: RequestInit): Promise<T> {
   const r = await fetch(path, { credentials: "include", ...options });
-  const data: any = await r.json().catch(() => ({}));
+  const data = (await r.json().catch(() => ({}))) as T & { error?: string };
   if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
   return data;
 }
@@ -294,7 +307,7 @@ export default function Home() {
   const [photoData, setPhotoData] = useState<string | null>(null);
   const [photoName, setPhotoName] = useState("");
   const [recording, setRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechEngine | null>(null);
   const [dateField, setDateField] = useState("Ex-factory");
   const [newDate, setNewDate] = useState("");
   const [dateReason, setDateReason] = useState("");
@@ -316,7 +329,7 @@ export default function Home() {
   };
   const load = useCallback(async () => {
     try {
-      const data = await api("/api/state");
+      const data = await api<State>("/api/state");
       setState(data);
       setError("");
       setSelected((s) => s || data.orders[0]?.id || "");
@@ -342,8 +355,8 @@ export default function Home() {
     }
   }, []);
   useEffect(() => {
-    load();
-    setOnline(navigator.onLine);
+    queueMicrotask(() => { void load(); });
+    queueMicrotask(() => setOnline(navigator.onLine));
     const on = () => setOnline(true),
       off = () => setOnline(false);
     window.addEventListener("online", on);
@@ -378,10 +391,10 @@ export default function Home() {
   }, [load]);
   useEffect(() => {
     window.addEventListener("online", flush);
-    flush();
+    queueMicrotask(() => { void flush(); });
     return () => window.removeEventListener("online", flush);
   }, [flush]);
-  const orders = state?.orders ?? [];
+  const orders = useMemo(() => state?.orders ?? [], [state?.orders]);
   const user = state?.actor;
   const order = orders.find((o) => o.id === selected);
   const buyers = [
@@ -508,9 +521,10 @@ export default function Home() {
     }
   };
   const startVoice = () => {
+    const speechWindow = window as SpeechWindow;
     const Ctor =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
+      speechWindow.SpeechRecognition ||
+      speechWindow.webkitSpeechRecognition;
     if (!Ctor) {
       flash(
         "Voice input is unavailable in this browser. Type the note instead.",
@@ -520,7 +534,7 @@ export default function Home() {
     const r = new Ctor();
     r.lang = "ta-IN";
     r.interimResults = false;
-    r.onresult = (event: any) => {
+    r.onresult = (event: SpeechResult) => {
       setNote((v) => `${v} ${event.results[0][0].transcript}`.trim());
       setRecording(false);
     };

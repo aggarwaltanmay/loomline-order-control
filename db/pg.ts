@@ -3,9 +3,7 @@ import { newDb } from "pg-mem";
 
 declare global {
   // Reuse a small pool across warm Vercel functions and Next dev reloads.
-  // eslint-disable-next-line no-var
-  var loomlinePool: any;
-  // eslint-disable-next-line no-var
+  var loomlinePool: Pool | undefined;
   var loomlineSchema: Promise<void> | undefined;
 }
 
@@ -15,7 +13,7 @@ function pool() {
     if (process.env.DATABASE_URL === "memory:") {
       const memory = newDb();
       const adapter = memory.adapters.createPg();
-      globalThis.loomlinePool = new adapter.Pool();
+      globalThis.loomlinePool = new adapter.Pool() as unknown as Pool;
     } else {
       globalThis.loomlinePool = new Pool({
         connectionString: process.env.DATABASE_URL,
